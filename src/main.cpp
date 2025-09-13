@@ -43,26 +43,26 @@ void setup() {
 
 void loop() {
   // ====== READ JOYSTICK ======
-  joystick.read();
-  int x   = joystick.getX();              // -255..255
-  int y   = joystick.getY();              // -255..255
-  int btn = joystick.isPressed() ? 1 : 0; // boolean → int
-  int forward = y; // default to local joystick
-  int turn    = x;
+  // joystick.read();
+  // int x   = joystick.getX();              // -255..255
+  // int y   = joystick.getY();              // -255..255
+  // int btn = joystick.isPressed() ? 1 : 0; // boolean → int
+  // int forward = y; // default to local joystick
+  // int turn    = x;
 
-  cart.applyInput("x", x);
-  cart.applyInput("y", y);
-  cart.applyInput("btn", btn);
+  // cart.applyInput("x", x);
+  // cart.applyInput("y", y);
+  // cart.applyInput("btn", btn);
   
 
   // ====== SEND JSON TO PC ======
-  std::map<String, int> inputs;
-  inputs["x"] = x;
-  inputs["y"] = y;
-  inputs["btn"] = btn;
+  // std::map<String, int> inputs;
+  // inputs["x"] = x;
+  // inputs["y"] = y;
+  // inputs["btn"] = btn;
 
-  char buffer[128];
-  comm.send(inputs);
+  // char buffer[128];
+  // comm.send(inputs);
 
   // ====== RECEIVE JSON FROM PC ======
   std::map<String, int> remoteInputs = comm.receive();
