@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
+#include <WiFiUdp.h>
+#include <ArduinoJson.h>
 #include "Joystick.h"
 #include "MotorDriver.h"
 
@@ -18,6 +20,7 @@ WiFiUDP udp;
 #define JOY_Y   35
 #define JOY_BTN 25
 
+// Motor pins
 #define IN1 18
 #define IN2 19
 #define ENA 23
@@ -25,11 +28,10 @@ WiFiUDP udp;
 #define IN4 17
 #define ENB 22
 
-
 // Objects
 Joystick joystick(JOY_X, JOY_Y, JOY_BTN);
-MotorDriver motorLeft(IN1, IN2, ENA, 0); // channel 0
-MotorDriver motorRight(IN3, IN4, ENB, 1); // channel 1
+MotorDriver motorLeft(IN1, IN2, ENA, 0);   // channel 0
+MotorDriver motorRight(IN3, IN4, ENB, 1);  // channel 1
 
 void setup() {
   Serial.begin(115200);
@@ -51,59 +53,66 @@ void setup() {
   motorRight.begin();
 }
 
-
-
 void loop() {
+  // ====== READ JOYSTICK ======
   joystick.read();
-
+  int x   = joystick.getX();              // -255..255
+  int y   = joystick.getY();              // -255..255
+  int btn = joystick.isPressed() ? 1 : 0; // boolean → int
+  int forward = y; // default to local joystick
+  int turn    = x;
   
-  int x = joystick.getX();      // -255..255
-  int y = joystick.getY();      // -255..255
-  bool btn = joystick.isPressed();
+  
+  // ====== SEND JSON TO PC ======
+  DynamicJsonDocument doc(128);
+  doc["x"] = x;
+  doc["y"] = y;
+  doc["btn"] = btn;
 
-  // Build message (CSV format)
-  char msg[64];
-  snprintf(msg, sizeof(msg), "%d,%d,%d", x, y, btn ? 1 : 0);
+  char buffer[128];
+  size_t len = serializeJson(doc, buffer);
 
-  // Send via UDP
   udp.beginPacket(udpAddress, udpPort);
-  udp.print(msg);
+  udp.write((uint8_t*)buffer, len);
   udp.endPacket();
 
-  Serial.printf("Sent: %s\n", msg);
-  
-  
-  // Receive via UDP
+  Serial.printf("Sent (%d bytes): %s\n", (int)len, buffer);
+
+  // ====== RECEIVE JSON FROM PC ======
   int packetSize = udp.parsePacket();
   if (packetSize) {
-    char incoming[128];
-    int len = udp.read(incoming, sizeof(incoming) - 1);
-    if (len > 0) incoming[len] = 0; // null terminate
+    char incoming[256];
+    int rlen = udp.read(incoming, sizeof(incoming) - 1);
+    if (rlen > 0) incoming[rlen] = 0;
 
-    // Expecting CSV format: X,Y,BTN
-    int x = 0, y = 0, btn = 0;
-    if (sscanf(incoming, "%d,%d,%d", &x, &y, &btn) == 3) {
-      Serial.printf("Received from PC -> X: %d, Y: %d, Button: %d\n", x, y, btn);
+    DynamicJsonDocument recvDoc(256);
+    DeserializationError error = deserializeJson(recvDoc, incoming);
+
+    if (!error) {
+        // Extract values from received JSON
+        if (recvDoc.containsKey("x")) turn = recvDoc["x"].as<int>();
+        if (recvDoc.containsKey("y")) forward = recvDoc["y"].as<int>();
+        if (recvDoc.containsKey("btn")) {
+            int btnRemote = recvDoc["btn"].as<int>();
+            Serial.printf("Remote Button: %d\n", btnRemote);
+        }
+
+      //  Serial.printf("Received JSON: forward=%d, turn=%d\n", forward, turn);
+
     } else {
-      Serial.printf("Invalid packet: %s\n", incoming);
+        Serial.printf("Invalid JSON: %s\n", incoming);
     }
   }
-
-  // Motor logic
-  int forward = y;  // -255..255
-  int turn    = x;  // -255..255
 
   int leftSpeed  = constrain(forward + turn, -255, 255);
   int rightSpeed = constrain(forward - turn, -255, 255);
 
+  // Uncomment when ready to drive motors:
   // motorLeft.setSpeed(leftSpeed);
   // motorRight.setSpeed(rightSpeed);
 
-  //Serial.printf("F:%d \t T:%d \t| L:%d \t R:%d\n", forward, turn, leftSpeed, rightSpeed);
-
-  // if (joystick.isPressed()) {
-  //   Serial.println("Button pressed!");
-  // }
+  // Debug print
+  Serial.printf("F:%d \t T:%d \t| L:%d \t R:%d\n", forward, turn, leftSpeed, rightSpeed);
 
   delay(50);
 }
