@@ -1,10 +1,8 @@
 #include <Arduino.h>
-#include <WiFi.h>
-#include <WiFiUdp.h>
-#include <ArduinoJson.h>
 #include "Joystick.h"
 #include "MotorDriver.h"
 #include "CartController.h"
+#include "CommModule.h"
 
 // ====== WiFi Settings ======
 const char* ssid     = "Meme";
@@ -32,25 +30,15 @@ Joystick joystick(JOY_X, JOY_Y, JOY_BTN);
 MotorDriver motorLeft(IN1, IN2, ENA, 0);   // channel 0
 MotorDriver motorRight(IN3, IN4, ENB, 1);  // channel 1
 CartController cart(motorLeft, motorRight);
+CommModule comm(udpAddress, udpPort);
 
 void setup() {
   Serial.begin(115200);
-
-  WiFi.begin(ssid, password);
-  Serial.print("Connecting to WiFi");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("\nConnected to WiFi");
-  Serial.print("ESP32 IP: ");
-  Serial.println(WiFi.localIP());
-  udp.begin(udpPort);
-  Serial.printf("Listening on UDP port %d...\n", udpPort);
-
-  Serial.println("\nInitializing motors");
+  
   motorLeft.begin();
   motorRight.begin();
+
+  comm.begin(ssid, password);
 }
 
 void loop() {
@@ -68,35 +56,18 @@ void loop() {
   
 
   // ====== SEND JSON TO PC ======
-  DynamicJsonDocument doc(128);
-  doc["x"] = x;
-  doc["y"] = y;
-  doc["btn"] = btn;
+  std::map<String, int> inputs;
+  inputs["x"] = x;
+  inputs["y"] = y;
+  inputs["btn"] = btn;
 
   char buffer[128];
-  size_t len = serializeJson(doc, buffer);
-
-  udp.beginPacket(udpAddress, udpPort);
-  udp.write((uint8_t*)buffer, len);
-  udp.endPacket();
-
-  Serial.printf("Sent (%d bytes): %s\n", (int)len, buffer);
+  comm.send(inputs);
 
   // ====== RECEIVE JSON FROM PC ======
-  int packetSize = udp.parsePacket();
-  if (packetSize) {
-    char incoming[256];
-    int rlen = udp.read(incoming, sizeof(incoming) - 1);
-    if (rlen > 0) incoming[rlen] = 0;
-
-    DynamicJsonDocument recvDoc(256);
-    if (deserializeJson(recvDoc, incoming) == DeserializationError::Ok) {
-        for (JsonPair kv : recvDoc.as<JsonObject>()) {
-            cart.applyInput(kv.key().c_str(), kv.value().as<int>());
-        }
-    } else {
-        Serial.printf("Invalid JSON: %s\n", incoming);
-    }
+  std::map<String, int> remoteInputs = comm.receive();
+  for (auto const& [key, value] : remoteInputs) {
+      cart.applyInput(key, value);
   }
 
   // ===== UPDATE MOTORS =====
