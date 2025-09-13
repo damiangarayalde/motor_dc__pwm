@@ -43,6 +43,8 @@ void setup() {
   Serial.println("\nConnected to WiFi");
   Serial.print("ESP32 IP: ");
   Serial.println(WiFi.localIP());
+  udp.begin(udpPort);
+  Serial.printf("Listening on UDP port %d...\n", udpPort);
 
   Serial.println("\nInitializing motors");
   motorLeft.begin();
@@ -70,6 +72,24 @@ void loop() {
 
   Serial.printf("Sent: %s\n", msg);
   
+  
+  // Receive via UDP
+  int packetSize = udp.parsePacket();
+  if (packetSize) {
+    char incoming[128];
+    int len = udp.read(incoming, sizeof(incoming) - 1);
+    if (len > 0) incoming[len] = 0; // null terminate
+
+    // Expecting CSV format: X,Y,BTN
+    int x = 0, y = 0, btn = 0;
+    if (sscanf(incoming, "%d,%d,%d", &x, &y, &btn) == 3) {
+      Serial.printf("Received from PC -> X: %d, Y: %d, Button: %d\n", x, y, btn);
+    } else {
+      Serial.printf("Invalid packet: %s\n", incoming);
+    }
+  }
+
+  // Motor logic
   int forward = y;  // -255..255
   int turn    = x;  // -255..255
 
