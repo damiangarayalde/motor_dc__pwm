@@ -71,7 +71,7 @@ void loop() {
   }
 
   // ===== UPDATE MOTORS =====
-  cart.updateMotors();
+  //cart.updateMotors();
 
   delay(50);
 }

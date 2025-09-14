@@ -45,7 +45,9 @@ std::map<String, int> CommModule::receive() {
         DynamicJsonDocument doc(256);
         if (deserializeJson(doc, incoming) == DeserializationError::Ok) {
             for (JsonPair pair : doc.as<JsonObject>()) {
-                kv[pair.key().c_str()] = pair.value().as<int>();
+                int val = pair.value().as<int>();
+                kv[pair.key().c_str()] = val;
+                Serial.printf("Received: %s = %d\n", pair.key().c_str(), val);
             }
         } else {
             Serial.printf("Invalid JSON: %s\n", incoming);
