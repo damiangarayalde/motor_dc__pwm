@@ -47,7 +47,7 @@ std::map<String, int> CommModule::receive() {
             for (JsonPair pair : doc.as<JsonObject>()) {
                 int val = pair.value().as<int>();
                 kv[pair.key().c_str()] = val;
-                Serial.printf("Received: %s = %d\n", pair.key().c_str(), val);
+                // Serial.printf("Received: %s = %d\n", pair.key().c_str(), val);
             }
         } else {
             Serial.printf("Invalid JSON: %s\n", incoming);

@@ -5,22 +5,41 @@
 #include <string>
 
 struct CartState {
-    int forward = 0;
-    int turn    = 0;
-    bool btn    = false;
+    float x = 0.0f;
+    float y = 0.0f;
+    float headingDeg = 0.0f;
+
+    float speed = 0.0f;
+    float targetSpeed = 0.0f;
+    float angularSpeed = 0.0f;
+
+    float vLeft = 0.0f;
+    float vRight = 0.0f;
+
+    bool paused = false;
+    bool trackingEnabled = false;
+    bool status_led = false;
+
 };
 
 class CartController {
 public:
     CartController(MotorDriver& left, MotorDriver& right);
 
-    // Apply a generic key/value input
     void applyInput(const String& key, int value);
+    void applyInputs(const std::map<String, int>& inputs);
 
-    // Update motor speeds based on current state
     void updateMotors();
 
-    // Access state (optional)
+    // Control helpers
+    void togglePause();
+    void toggleTracking();
+    void changeSpeed(int delta);
+    void setSpeedPercent(float percent);
+    void setAngularRate(float omega);
+    void applyLateralDisturbance(float displacement);
+    void adjustDirection(float step);
+
     CartState getState() const { return state; }
 
 private:
@@ -29,4 +48,5 @@ private:
     CartState state;
 
     void handleKeyValue(const String& key, int value);
+    void updateWheelSpeeds(float omega);
 };

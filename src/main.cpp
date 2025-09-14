@@ -34,7 +34,8 @@ CommModule comm(udpAddress, udpPort);
 
 void setup() {
   Serial.begin(115200);
-  
+  pinMode(LED_BUILTIN,OUTPUT);
+
   motorLeft.begin();
   motorRight.begin();
 
@@ -66,8 +67,8 @@ void loop() {
 
   // ====== RECEIVE JSON FROM PC ======
   std::map<String, int> remoteInputs = comm.receive();
-  for (auto const& [key, value] : remoteInputs) {
-      cart.applyInput(key, value);
+  if (!remoteInputs.empty()) {
+      cart.applyInputs(remoteInputs);
   }
 
   // ===== UPDATE MOTORS =====
