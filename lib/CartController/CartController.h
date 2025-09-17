@@ -18,8 +18,8 @@ struct CartState {
 
     bool paused = false;
     bool trackingEnabled = false;
-    bool status_led = false;
-
+    bool horn = false;
+    bool cruise_speed = 0.0f;
 };
 
 class CartController {

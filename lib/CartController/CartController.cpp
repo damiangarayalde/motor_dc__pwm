@@ -29,19 +29,16 @@ void CartController::handleKeyValue(const String& key, int value) {
         changeSpeed(+10); // step size
     } else if (key == "slower" && value) {
         changeSpeed(-10);
-    // } else if (key == "disturb_left" && value) {
-    //     applyLateralDisturbance(+5);
+    } else if (key == "disturb_left" && value) {
+        applyLateralDisturbance(+5);
     } else if (key == "disturb_right" && value) {
         applyLateralDisturbance(-5);
-    } else if (key == "disturb_left") {
-        state.status_led = (value != 0);
-
-        // Control LED
-        if (state.status_led) {
-            digitalWrite(BUILTIN_LED, HIGH);  // ON
-        } else {
-            digitalWrite(BUILTIN_LED, LOW);   // OFF
-        }
+    } else if (key == "horn_pressed") {
+        state.horn = (value != 0);
+        digitalWrite(BUILTIN_LED, HIGH);  // ON
+    } else if (key == "horn_released") {
+        state.horn = (value != 0);
+        digitalWrite(BUILTIN_LED, LOW);  // OFF
     }
 }
 
