@@ -11,6 +11,7 @@ struct CartState {
 
     float speed = 0.0f;
     float targetSpeed = 0.0f;
+    float targetOmega = 0.0f;
     float angularSpeed = 0.0f;
 
     float vLeft = 0.0f;
@@ -36,7 +37,7 @@ public:
     void toggleTracking();
     void changeSpeed(int delta);
     void setSpeedPercent(float percent);
-    void setAngularRate(float omega);
+    void setAngularRatePercent(float omega_percent);
     void applyLateralDisturbance(float displacement);
     void adjustDirection(float step);
 

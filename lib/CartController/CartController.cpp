@@ -14,13 +14,12 @@ void CartController::applyInputs(const std::map<String, int>& inputs) {
 }
 
 void CartController::handleKeyValue(const String& key, int value) {
-    Serial.printf("Key: %s \t | Value: %d\n", key, value);
+    // Serial.printf("Key: %s \t | Value: %d\n", key, value);
 
     if (key == "speed_percent") {
         setSpeedPercent(value / 255.0f);
-    } else if (key == "omega") {
-        float maxTurnRate = 0.04f; // rad/s, tune
-        setAngularRate((value / 255.0f) * maxTurnRate);
+    } else if (key == "omega_percent") {
+        setAngularRatePercent(value / 255.0f);
     } else if (key == "toggle_pause" && value) {
         togglePause();
     } else if (key == "toggle_tracking" && value) {
@@ -73,10 +72,11 @@ void CartController::setSpeedPercent(float percent) {
     }
 }
 
-void CartController::setAngularRate(float omega) {
+void CartController::setAngularRatePercent(float omega_percent) {
     if (!state.paused) {
-        state.angularSpeed = omega;
-        updateWheelSpeeds(omega);
+        float maxOmega = 200.0f; // tune as needed
+        state.targetOmega = omega_percent * maxOmega;
+        updateWheelSpeeds(state.targetOmega);
     }
 }
 
@@ -90,19 +90,22 @@ void CartController::adjustDirection(float step) {
 }
 
 void CartController::updateWheelSpeeds(float omega) {
-    float d = 0.2f; // wheelbase distance (m), tune
+    float d = 1.0;
+    //0.2f; // wheelbase distance (m), tune
     state.vLeft  = state.speed - 0.5f * d * omega;
     state.vRight = state.speed + 0.5f * d * omega;
 }
 
 void CartController::updateMotors() {
-    int leftPWM  = constrain((int)state.vLeft,  -255, 255);
-    int rightPWM = constrain((int)state.vRight, -255, 255);
+    int leftPWM = state.vLeft;
+    //constrain((int)state.vLeft, -255, 255);
+    int rightPWM = (int)state.vRight;
+    //constrain((int)state.vRight, -255, 255);
 
-    motorLeft.setSpeed(leftPWM);
-    motorRight.setSpeed(rightPWM);
-
-    Serial.printf("Speed: %.2f, Target: %.2f, Omega: %.2f | L:%d R:%d\n",
+    // motorLeft.setSpeed(leftPWM);
+    // motorRight.setSpeed(rightPWM);
+       
+    Serial.printf("Speed: %.2f, \tTarget: %.2f, \tOmega: %.2f  \t|   L:%d \tR:%d\n",
                   state.speed, state.targetSpeed, state.angularSpeed,
                   leftPWM, rightPWM);
 }
